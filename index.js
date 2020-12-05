@@ -13,8 +13,10 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 io.on("connection", (socket) => {
+  console.log(socket.id);
   socket.on("connectnotify", (room) => {
     socket.join(room.id);
+    console.log(socket.adapter.rooms);
   });
   socket.on("userconnect", (data) => {
     io.to(data.id).emit("notify", data.model);
@@ -28,15 +30,16 @@ io.on("connection", (socket) => {
     io.to(data.id).emit("delete", data);
   });
 
-  socket.on("joinroom", (data) => {
-    console.log(data);
-    data.forEach((roomid) => {
-      socket.join(roomid);
-    });
+  socket.on("newmessage", (data) => {
+    socket.join(data);
   });
-  socket.on("sendmessage", (data) => {
-    console.log(data);
-    io.in(data.id).emit("getmessage", data.model);
+
+  socket.on("joinroom", (data) => {
+    socket.join(data.id);
+  });
+  socket.on("sendmessage", (mess) => {
+    console.log(mess.message);
+    io.in(mess.message.PK).emit("getmessage", mess.message);
   });
 });
 app.use(cors());

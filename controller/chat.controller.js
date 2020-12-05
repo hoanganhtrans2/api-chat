@@ -6,7 +6,35 @@ module.exports.getRomChat = async (req, res) => {
 
   try {
     const ls = await getValueByPkSk(id, "room");
-    res.json(ls);
+    if (ls.Count > 0) {
+      const params = {
+        TableName: "user-zalo",
+        ScanIndexForward: true,
+        AttributesToGet: ["userid", "username", "imgurl"],
+        ScanFilter: {
+          userid: {
+            ComparisonOperator: "IN",
+            AttributeValueList: ls.list,
+          },
+        },
+      };
+      docClient.scan(params, function (err, data) {
+        if (err) {
+          res.send(err);
+        } else {
+          let resutl = [];
+          data.Items.forEach((user) => {
+            resutl[ls.list.indexOf(user.userid)] = user;
+          });
+          ls.Items.forEach((room) => {
+            let index = ls.list.indexOf(room.member);
+            resutl[index].infoRoom = room;
+            resutl[index].index = index;
+          });
+          res.json({ Items: resutl });
+        }
+      });
+    } else res.json({ Items: [] });
   } catch (error) {
     res.send(error);
   }
@@ -19,6 +47,7 @@ module.exports.getMessageFromRoom = (req, res) => {
     TableName: "chat",
     KeyConditionExpression: "#pk = :romid and begins_with( #sk,:chat)",
     ScanIndexForward: false,
+    Limit: 100,
     ExpressionAttributeNames: {
       "#pk": "PK",
       "#sk": "SK",
@@ -35,6 +64,25 @@ module.exports.getMessageFromRoom = (req, res) => {
       console.log(data.Items);
       res.json(data);
     }
+  });
+};
+
+module.exports.putMessage = (req, res) => {
+  const { PK, SK, owner, time, message } = req.body;
+  const params = {
+    TableName: "chat",
+    ReturnValues: "ALL_OLD",
+    Item: {
+      PK: PK,
+      SK: SK,
+      owner: owner,
+      time: time,
+      message: message,
+    },
+  };
+  docClient.put(params, function (err, data) {
+    if (err) res.send(err);
+    else res.json({ message: "Đã nhận" });
   });
 };
 
@@ -57,7 +105,11 @@ function getValueByPkSk(pk, sk) {
       if (err) {
         reject(err);
       } else {
-        console.log(data.Items);
+        let arr = [];
+        data.Items.forEach((element) => {
+          arr.push(element.member);
+        });
+        data.list = arr;
         resolve(data);
       }
     });
