@@ -6,5 +6,7 @@ var chatController = require("../controller/chat.controller");
 router.post("/getRoom", chatController.getRomChat);
 router.post("/getMessageFromRoom", chatController.getMessageFromRoom);
 router.post("/putMessage", chatController.putMessage);
+router.post("/getRoomChat", chatController.getRoomChat);
+router.post("/getMemberInRoom", chatController.getMemberInRoom);
 
 module.exports = router;

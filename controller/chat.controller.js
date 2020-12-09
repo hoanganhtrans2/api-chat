@@ -115,3 +115,52 @@ function getValueByPkSk(pk, sk) {
     });
   });
 }
+
+module.exports.getRoomChat = (req, res) => {
+  const { userid } = req.body;
+  var params = {
+    TableName: "room-chat",
+    KeyConditionExpression: "#pk = :userid and begins_with( #sk,:room)",
+    ScanIndexForward: false,
+    Limit: 100,
+    ExpressionAttributeNames: {
+      "#pk": "PK",
+      "#sk": "SK",
+    },
+    ExpressionAttributeValues: {
+      ":userid": userid,
+      ":room": "room",
+    },
+  };
+  docClient.query(params, function (err, data) {
+    if (err) {
+      res.send(err);
+    } else {
+      console.log(data.Items);
+      res.json(data);
+    }
+  });
+};
+
+module.exports.getMemberInRoom = (req, res) => {
+  const { member } = req.body;
+  const arr = member.split(",");
+  try {
+    const params = {
+      TableName: "user-zalo",
+      AttributesToGet: ["userid", "username", "imgurl", "birthday", "gender"],
+      ScanFilter: {
+        userid: {
+          ComparisonOperator: "IN",
+          AttributeValueList: arr,
+        },
+      },
+    };
+    docClient.scan(params, function (err, data) {
+      if (err) res.send({ err: err });
+      else res.json(data);
+    });
+  } catch (error) {
+    res.send(error);
+  }
+};
